@@ -46,6 +46,11 @@ object Constants {
         const val NOTIFICATIONS = 2
     }
 
+    object SwipeRightAction {
+        const val WIDGETS = 0
+        const val APP = 1
+    }
+
     object CharacterIndicator {
         const val SHOW = 102
         const val HIDE = 101
@@ -85,6 +90,11 @@ object Constants {
 
     const val REQUEST_CODE_ENABLE_ADMIN = 666
     const val REQUEST_CODE_LAUNCHER_SELECTOR = 678
+    const val REQUEST_CODE_BIND_APPWIDGET = 701
+    const val REQUEST_CODE_PICK_APPWIDGET = 702
+
+    const val GOOGLE_TASKS_PACKAGE_NAME = "com.google.android.apps.tasks"
+    const val GOOGLE_CALENDAR_PACKAGE_NAME = "com.google.android.calendar"
 
     const val HINT_RATE_US = 15
 

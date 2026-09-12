@@ -303,14 +303,20 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
     }
 
     private fun toggleSwipeRight() {
-        prefs.swipeRightEnabled = !prefs.swipeRightEnabled
-        if (prefs.swipeRightEnabled) {
+        if (!prefs.swipeRightEnabled) {
+            prefs.swipeRightEnabled = true
             binding.swipeRightApp.setTextColor(requireContext().getColorFromAttr(R.attr.primaryColor))
             requireContext().showToast(getString(R.string.swipe_right_app_enabled))
         } else {
-            binding.swipeRightApp.setTextColor(requireContext().getColorFromAttr(R.attr.primaryColorTrans50))
-            requireContext().showToast(getString(R.string.swipe_right_app_disabled))
+            if (prefs.swipeRightAction == Constants.SwipeRightAction.WIDGETS) {
+                prefs.swipeRightAction = Constants.SwipeRightAction.APP
+                requireContext().showToast("Swipe right: App")
+            } else {
+                prefs.swipeRightAction = Constants.SwipeRightAction.WIDGETS
+                requireContext().showToast("Swipe right: Widgets")
+            }
         }
+        populateSwipeApps()
     }
 
     private fun toggleStatusBar() {
@@ -647,27 +653,30 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
 
     private fun populateSwipeApps() {
         binding.swipeLeftApp.text = prefs.appNameSwipeLeft
-        binding.swipeRightApp.text = prefs.appNameSwipeRight
+        binding.swipeRightApp.text = if (prefs.swipeRightAction == Constants.SwipeRightAction.WIDGETS) {
+            getString(R.string.widgets)
+        } else {
+            prefs.appNameSwipeRight
+        }
         if (!prefs.swipeLeftEnabled)
             binding.swipeLeftApp.setTextColor(requireContext().getColorFromAttr(R.attr.primaryColorTrans50))
         if (!prefs.swipeRightEnabled)
             binding.swipeRightApp.setTextColor(requireContext().getColorFromAttr(R.attr.primaryColorTrans50))
     }
 
-//    private fun populateDigitalWellbeing() {
-//        binding.digitalWellbeing.isVisible = requireContext().isPackageInstalled(Constants.DIGITAL_WELLBEING_PACKAGE_NAME).not()
-//                && requireContext().isPackageInstalled(Constants.DIGITAL_WELLBEING_SAMSUNG_PACKAGE_NAME).not()
-//                && prefs.hideDigitalWellbeing.not()
-//    }
-
     private fun showAppListIfEnabled(flag: Int) {
         if ((flag == Constants.FLAG_SET_SWIPE_LEFT_APP) and !prefs.swipeLeftEnabled) {
             requireContext().showToast(getString(R.string.long_press_to_enable))
             return
         }
-        if ((flag == Constants.FLAG_SET_SWIPE_RIGHT_APP) and !prefs.swipeRightEnabled) {
-            requireContext().showToast(getString(R.string.long_press_to_enable))
-            return
+        if (flag == Constants.FLAG_SET_SWIPE_RIGHT_APP) {
+            if (!prefs.swipeRightEnabled) {
+                requireContext().showToast(getString(R.string.long_press_to_enable))
+                return
+            }
+            if (prefs.swipeRightAction == Constants.SwipeRightAction.WIDGETS) {
+                prefs.swipeRightAction = Constants.SwipeRightAction.APP
+            }
         }
         viewModel.getAppList(true)
         findNavController().navigate(

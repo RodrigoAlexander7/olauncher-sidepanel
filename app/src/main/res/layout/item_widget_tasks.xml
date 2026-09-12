@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/llTasksFallback"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/rounded_rectangle_dark"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/tvTasksHeader"
+            style="@style/TextMedium"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/google_tasks"
+            android:textColor="?attr/primaryColor" />
+
+        <TextView
+            android:id="@+id/btnConfigureTasks"
+            style="@style/TextSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackground"
+            android:padding="6dp"
+            android:text="@string/widget_select"
+            android:textColor="?attr/primaryColor" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/llTasksList"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvTaskItem1"
+            style="@style/TextSmall"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingVertical="4dp"
+            android:text="• Open Google Tasks app"
+            android:textColor="?attr/primaryColor" />
+
+        <TextView
+            android:id="@+id/tvTaskItem2"
+            style="@style/TextSmall"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingVertical="4dp"
+            android:text="• Add daily priorities"
+            android:textColor="?attr/primaryColor" />
+
+    </LinearLayout>
+
+</LinearLayout>

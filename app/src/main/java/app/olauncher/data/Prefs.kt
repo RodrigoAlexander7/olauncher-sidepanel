@@ -36,6 +36,11 @@ class Prefs(context: Context) {
     private val WALLPAPER_MSG_SHOWN = "WALLPAPER_MSG_SHOWN"
     private val SHARE_SHOWN_TIME = "SHARE_SHOWN_TIME"
     private val SWIPE_DOWN_ACTION = "SWIPE_DOWN_ACTION"
+    private val SWIPE_RIGHT_ACTION = "SWIPE_RIGHT_ACTION"
+    private val GOOGLE_TASKS_WIDGET_ID = "GOOGLE_TASKS_WIDGET_ID"
+    private val GOOGLE_CALENDAR_WIDGET_ID = "GOOGLE_CALENDAR_WIDGET_ID"
+    private val GALLERY_IMAGE_URI = "GALLERY_IMAGE_URI"
+    private val WIDGETS_SCREEN_ENABLED = "WIDGETS_SCREEN_ENABLED"
     private val TEXT_SIZE_SCALE = "TEXT_SIZE_SCALE"
     private val BOLD_FONT = "BOLD_FONT"
     private val PRO_MESSAGE_SHOWN = "PRO_MESSAGE_SHOWN"
@@ -261,6 +266,26 @@ class Prefs(context: Context) {
     var swipeDownAction: Int
         get() = prefs.getInt(SWIPE_DOWN_ACTION, Constants.SwipeDownAction.NOTIFICATIONS)
         set(value) = prefs.edit { putInt(SWIPE_DOWN_ACTION, value).apply() }
+
+    var swipeRightAction: Int
+        get() = prefs.getInt(SWIPE_RIGHT_ACTION, Constants.SwipeRightAction.WIDGETS)
+        set(value) = prefs.edit { putInt(SWIPE_RIGHT_ACTION, value).apply() }
+
+    var googleTasksWidgetId: Int
+        get() = prefs.getInt(GOOGLE_TASKS_WIDGET_ID, -1)
+        set(value) = prefs.edit { putInt(GOOGLE_TASKS_WIDGET_ID, value).apply() }
+
+    var googleCalendarWidgetId: Int
+        get() = prefs.getInt(GOOGLE_CALENDAR_WIDGET_ID, -1)
+        set(value) = prefs.edit { putInt(GOOGLE_CALENDAR_WIDGET_ID, value).apply() }
+
+    var galleryImageUri: String
+        get() = prefs.getString(GALLERY_IMAGE_URI, "").toString()
+        set(value) = prefs.edit { putString(GALLERY_IMAGE_URI, value).apply() }
+
+    var widgetsScreenEnabled: Boolean
+        get() = prefs.getBoolean(WIDGETS_SCREEN_ENABLED, true)
+        set(value) = prefs.edit { putBoolean(WIDGETS_SCREEN_ENABLED, value).apply() }
 
     var appName1: String
         get() = prefs.getString(APP_NAME_1, "").toString()

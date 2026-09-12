@@ -510,6 +510,14 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
 
     private fun openSwipeRightApp() {
         if (!prefs.swipeRightEnabled) return
+        if (prefs.swipeRightAction == Constants.SwipeRightAction.WIDGETS) {
+            try {
+                findNavController().navigate(R.id.action_mainFragment_to_widgetsFragment)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            return
+        }
         launchAppOrShortcut(
             appName = prefs.appNameSwipeRight,
             packageName = prefs.appPackageSwipeRight,

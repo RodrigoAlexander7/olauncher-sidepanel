@@ -184,6 +184,9 @@ class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent?) {
         // Home button for recents feature disabled
         // val alreadyHome = navController.currentDestination?.id == R.id.mainFragment
+        if (navController.currentDestination?.id == R.id.widgetsFragment) {
+            navController.popBackStack(R.id.mainFragment, false)
+        }
         backToHomeScreen()
         // if (alreadyHome && isResumed && prefs.homeButtonShowRecents)
         //     viewModel.showRecentApps.call()
@@ -364,7 +367,8 @@ class MainActivity : AppCompatActivity() {
     private fun backToHomeScreen() {
         if (viewModel.isPrivateSpaceToggling) return
         binding.messageLayout.visibility = View.GONE
-        if (navController.currentDestination?.id != R.id.mainFragment)
+        val currentId = navController.currentDestination?.id
+        if (currentId != R.id.mainFragment && currentId != R.id.widgetsFragment)
             navController.popBackStack(R.id.mainFragment, false)
     }
 
