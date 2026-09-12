@@ -11,6 +11,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -128,7 +129,9 @@ class WidgetsFragment : BaseFragment() {
             val widgetView = hostHelper.createWidgetView(requireContext(), tasksWidgetId, tasksInfo)
             if (widgetView != null) {
                 binding.tasksWidgetContainer.removeAllViews()
-                binding.tasksWidgetContainer.addView(widgetView)
+                val pxHeight = (350 * resources.displayMetrics.density).toInt()
+                val lp = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, pxHeight)
+                binding.tasksWidgetContainer.addView(widgetView, lp)
                 return
             }
         }
@@ -151,7 +154,9 @@ class WidgetsFragment : BaseFragment() {
             val widgetView = hostHelper.createWidgetView(requireContext(), calendarWidgetId, calendarInfo)
             if (widgetView != null) {
                 binding.calendarWidgetContainer.removeAllViews()
-                binding.calendarWidgetContainer.addView(widgetView)
+                val pxHeight = (350 * resources.displayMetrics.density).toInt()
+                val lp = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, pxHeight)
+                binding.calendarWidgetContainer.addView(widgetView, lp)
                 return
             }
         }
@@ -193,7 +198,23 @@ class WidgetsFragment : BaseFragment() {
         }
 
         galleryBinding?.btnSelectImage?.setOnClickListener(pickListener)
-        galleryBinding?.flGalleryImageContainer?.setOnClickListener(pickListener)
+        galleryBinding?.btnEditImage?.setOnClickListener(pickListener)
+
+        galleryBinding?.ivGalleryImage?.setOnClickListener {
+            val uriStr = prefs.galleryImageUri
+            if (uriStr.isNotEmpty()) {
+                val uri = Uri.parse(uriStr)
+                val intent = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(uri, "image/*")
+                    flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                }
+                try {
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    Toast.makeText(context, "No app found to open image", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
 
         val savedUri = prefs.galleryImageUri
         if (savedUri.isNotEmpty()) {
@@ -211,11 +232,13 @@ class WidgetsFragment : BaseFragment() {
             val uri = Uri.parse(uriStr)
             galleryBinding?.ivGalleryImage?.setImageURI(uri)
             galleryBinding?.ivGalleryImage?.visibility = View.VISIBLE
-            galleryBinding?.tvEmptyGallery?.visibility = View.GONE
+            galleryBinding?.btnEditImage?.visibility = View.VISIBLE
+            galleryBinding?.llEmptyGallery?.visibility = View.GONE
         } catch (e: Exception) {
             e.printStackTrace()
             galleryBinding?.ivGalleryImage?.visibility = View.GONE
-            galleryBinding?.tvEmptyGallery?.visibility = View.VISIBLE
+            galleryBinding?.btnEditImage?.visibility = View.GONE
+            galleryBinding?.llEmptyGallery?.visibility = View.VISIBLE
         }
     }
 

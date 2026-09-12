@@ -44,6 +44,13 @@
                 android:textColor="?attr/primaryColor" />
         </LinearLayout>
 
+        <!-- Gallery Image Container -->
+        <FrameLayout
+            android:id="@+id/galleryWidgetContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp" />
+
         <!-- Google Tasks Container -->
         <FrameLayout
             android:id="@+id/tasksWidgetContainer"
@@ -54,13 +61,6 @@
         <!-- Google Calendar Container -->
         <FrameLayout
             android:id="@+id/calendarWidgetContainer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp" />
-
-        <!-- Gallery Image Container -->
-        <FrameLayout
-            android:id="@+id/galleryWidgetContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="20dp" />
