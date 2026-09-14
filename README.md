@@ -1,7 +1,4 @@
-![Olauncher](https://repository-images.githubusercontent.com/278638069/db0acb80-661b-11eb-803e-926cae5dccb4)
-
-
-# Olauncher | Minimal AF Launcher
+# Olauncher Widget Version | Minimal AF Launcher
 AF stands for Ad-Free! :D
 
 # New Features/Widgets:
