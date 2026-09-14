@@ -4,6 +4,13 @@
 # Olauncher | Minimal AF Launcher
 AF stands for Ad-Free! :D
 
+# New Features/Widgets:
+Sidepanel with widgets like:
+- Photo viewer
+- Google Task Widget
+- Google Calendar Widget
+Just right scroll and see the magic!
+
 [<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png"
     alt="Get it on F-Droid"
     height="80">](https://f-droid.org/packages/app.olauncher)
