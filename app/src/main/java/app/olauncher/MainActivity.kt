@@ -131,6 +131,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
+        app.olauncher.helper.AppWidgetHostHelper.getInstance(this).startListening()
         restartLauncherOrCheckTheme()
     }
 
@@ -173,6 +174,7 @@ class MainActivity : AppCompatActivity() {
     override fun onStop() {
         isResumed = false
         backToHomeScreen()
+        app.olauncher.helper.AppWidgetHostHelper.getInstance(this).stopListening()
         super.onStop()
     }
 

@@ -89,7 +89,8 @@ class WidgetsFragment : BaseFragment() {
         super.onViewCreated(view, savedInstanceState)
         prefs = Prefs(requireContext())
         viewModel = ViewModelProvider(this)[WidgetsViewModel::class.java]
-        hostHelper = AppWidgetHostHelper(requireContext())
+        hostHelper = AppWidgetHostHelper.getInstance(requireContext())
+        hostHelper.startListening()
 
         setupSwipeGesture()
         binding.btnBackToHome.setOnClickListener { findNavController().navigateUp() }
@@ -97,16 +98,6 @@ class WidgetsFragment : BaseFragment() {
         setupTasksWidget()
         setupCalendarWidget()
         setupGalleryWidget()
-    }
-
-    override fun onStart() {
-        super.onStart()
-        hostHelper.startListening()
-    }
-
-    override fun onStop() {
-        super.onStop()
-        hostHelper.stopListening()
     }
 
     private fun setupSwipeGesture() {
