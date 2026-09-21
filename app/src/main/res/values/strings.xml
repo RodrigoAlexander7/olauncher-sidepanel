@@ -189,6 +189,8 @@
     <string name="calendar_permission_required">Tap to grant Calendar permission</string>
     <string name="widget_open">Open</string>
     <string name="all_calendars">All calendars</string>
+    <string name="calendar_selector">Calendar: %1$s</string>
+    <string name="calendar_selected_mark">✓</string>
     <string name="event_today">Today</string>
     <string name="event_tomorrow">Tomorrow</string>
     <string name="event_all_day">All day</string>

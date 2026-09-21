@@ -37,14 +37,22 @@
     <TextView
         android:id="@+id/btnSelectCalendar"
         style="@style/TextSmall"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="4dp"
         android:alpha="0.6"
         android:background="?attr/selectableItemBackground"
-        android:paddingVertical="4dp"
+        android:gravity="center_vertical"
+        android:minHeight="48dp"
         android:text="@string/all_calendars"
         android:textColor="?attr/primaryColor" />
+
+    <LinearLayout
+        android:id="@+id/llCalendarPicker"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone" />
 
     <LinearLayout
         android:id="@+id/llEventsContainer"

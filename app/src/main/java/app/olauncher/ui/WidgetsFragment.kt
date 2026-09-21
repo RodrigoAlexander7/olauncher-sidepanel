@@ -17,6 +17,7 @@ import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
 import app.olauncher.R
@@ -24,6 +25,7 @@ import app.olauncher.data.Constants
 import app.olauncher.data.Prefs
 import app.olauncher.databinding.FragmentWidgetsBinding
 import app.olauncher.databinding.ItemCalendarEventBinding
+import app.olauncher.databinding.ItemCalendarOptionBinding
 import app.olauncher.databinding.ItemWidgetCalendarBinding
 import app.olauncher.databinding.ItemWidgetGalleryBinding
 import app.olauncher.databinding.ItemWidgetHostedBinding
@@ -91,8 +93,7 @@ class WidgetsFragment : BaseFragment() {
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            viewModel.loadCalendars(requireContext())
-            viewModel.loadCalendarEvents(requireContext(), prefs.calendarId)
+            setupCalendarWidget()
         } else {
             Toast.makeText(context, "Calendar permission denied", Toast.LENGTH_SHORT).show()
         }
@@ -186,6 +187,7 @@ class WidgetsFragment : BaseFragment() {
         card.btnConfigureCalendar.setOnClickListener { openCalendarApp() }
 
         card.btnSelectCalendar.visibility = View.GONE
+        card.llCalendarPicker.visibility = View.GONE
 
         if (hasCalendarPermission()) {
             viewModel.loadCalendars(requireContext())
@@ -216,29 +218,66 @@ class WidgetsFragment : BaseFragment() {
     }
 
     /**
-     * Tapping cycles All -> each calendar -> All, matching how the rest of the launcher lets you
-     * pick a value without opening a dialog.
+     * The selector opens an inline list rather than cycling through calendars on tap: several
+     * accounts can hold calendars with the same display name - holiday calendars in particular -
+     * so the account has to be visible to tell them apart, and picking "All" has to be one tap
+     * away rather than N.
      */
     private fun renderCalendarSelector() {
         val card = calendarBinding ?: return
         val selected = availableCalendars.firstOrNull { it.id == prefs.calendarId }
-        card.btnSelectCalendar.text = when {
-            selected == null -> getString(R.string.all_calendars)
-            selected.displayName.isNotBlank() -> selected.displayName
-            else -> selected.accountName
-        }
+        card.btnSelectCalendar.text = getString(R.string.calendar_selector, calendarLabel(selected))
         card.btnSelectCalendar.visibility =
-            if (availableCalendars.size > 1) View.VISIBLE else View.GONE
-        card.btnSelectCalendar.setOnClickListener { cycleCalendar() }
+            if (availableCalendars.isEmpty()) View.GONE else View.VISIBLE
+        card.btnSelectCalendar.setOnClickListener {
+            if (card.llCalendarPicker.isVisible) hideCalendarPicker() else showCalendarPicker()
+        }
+        if (card.llCalendarPicker.isVisible) showCalendarPicker()
     }
 
-    private fun cycleCalendar() {
-        if (availableCalendars.isEmpty()) return
-        val ids = listOf(Constants.ALL_CALENDARS) + availableCalendars.map { it.id }
-        val next = ids[(ids.indexOf(prefs.calendarId).coerceAtLeast(0) + 1) % ids.size]
-        prefs.calendarId = next
+    private fun calendarLabel(calendar: CalendarInfo?): String = when {
+        calendar == null -> getString(R.string.all_calendars)
+        calendar.displayName.isNotBlank() -> calendar.displayName
+        else -> calendar.accountName
+    }
+
+    private fun showCalendarPicker() {
+        val card = calendarBinding ?: return
+        card.llCalendarPicker.removeAllViews()
+        card.llCalendarPicker.visibility = View.VISIBLE
+
+        // null stands for "every calendar" and always leads the list.
+        val options: List<CalendarInfo?> = listOf(null) + availableCalendars
+        for (option in options) {
+            val row = ItemCalendarOptionBinding.inflate(layoutInflater, card.llCalendarPicker, true)
+            val id = option?.id ?: Constants.ALL_CALENDARS
+            row.tvOptionName.text = calendarLabel(option)
+            // Two accounts can own calendars with the same name, so name the account as well.
+            if (option == null || option.accountName.isBlank() ||
+                option.accountName == option.displayName
+            ) {
+                row.tvOptionAccount.visibility = View.GONE
+            } else {
+                row.tvOptionAccount.visibility = View.VISIBLE
+                row.tvOptionAccount.text = option.accountName
+            }
+            row.tvOptionCheck.visibility =
+                if (id == prefs.calendarId) View.VISIBLE else View.INVISIBLE
+            row.llCalendarOption.setOnClickListener { selectCalendar(id) }
+        }
+    }
+
+    private fun hideCalendarPicker() {
+        val card = calendarBinding ?: return
+        card.llCalendarPicker.visibility = View.GONE
+        card.llCalendarPicker.removeAllViews()
+    }
+
+    private fun selectCalendar(calendarId: Long) {
+        prefs.calendarId = calendarId
+        hideCalendarPicker()
         renderCalendarSelector()
-        viewModel.loadCalendarEvents(requireContext(), next)
+        viewModel.loadCalendarEvents(requireContext(), calendarId)
     }
 
     private fun renderCalendarEvents(events: List<CalendarEventModel>) {
