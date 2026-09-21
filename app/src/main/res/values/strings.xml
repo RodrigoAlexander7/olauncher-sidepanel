@@ -182,9 +182,11 @@
     <string name="google_calendar">Google Calendar</string>
     <string name="gallery_image">Gallery Image</string>
     <string name="widget_select">Configure</string>
+    <string name="widget_remove">Remove</string>
     <string name="select_photo">Select Photo</string>
     <string name="tap_to_choose_photo">Tap to select photo from gallery</string>
     <string name="no_upcoming_events">No upcoming events</string>
+    <string name="calendar_permission_required">Tap to grant Calendar permission</string>
     <string name="swipe_right_action">Swipe right action</string>
     <string name="swipe_right_widgets">Widgets View</string>
     <string name="swipe_right_open_app">Open App</string>
