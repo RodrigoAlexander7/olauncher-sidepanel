@@ -3,10 +3,13 @@ package app.olauncher.ui
 import android.Manifest
 import android.app.Activity
 import android.appwidget.AppWidgetManager
+import android.content.ContentUris
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
+import android.provider.CalendarContract
+import android.text.format.DateUtils
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -20,12 +23,16 @@ import app.olauncher.R
 import app.olauncher.data.Constants
 import app.olauncher.data.Prefs
 import app.olauncher.databinding.FragmentWidgetsBinding
+import app.olauncher.databinding.ItemCalendarEventBinding
 import app.olauncher.databinding.ItemWidgetCalendarBinding
 import app.olauncher.databinding.ItemWidgetGalleryBinding
 import app.olauncher.databinding.ItemWidgetHostedBinding
 import app.olauncher.databinding.ItemWidgetTasksBinding
 import app.olauncher.helper.AppWidgetHostHelper
 import app.olauncher.listener.OnSwipeTouchListener
+import java.util.Calendar
+import java.util.TimeZone
+import kotlin.math.roundToLong
 
 class WidgetsFragment : BaseFragment() {
 
@@ -118,7 +125,6 @@ class WidgetsFragment : BaseFragment() {
         // Providers stop pushing RemoteViews while the host is not listening; ask them to redraw.
         hostHelper.startListening()
         hostHelper.requestUpdate(prefs.googleTasksWidgetId)
-        hostHelper.requestUpdate(prefs.googleCalendarWidgetId)
         if (hasCalendarPermission()) viewModel.loadCalendarEvents(requireContext())
     }
 
@@ -157,29 +163,30 @@ class WidgetsFragment : BaseFragment() {
         }
     }
 
+    /**
+     * Calendar is drawn from CalendarContract rather than by hosting Google Calendar's own widget:
+     * that widget fills its list through a RemoteViewsService that never connects inside our host,
+     * so it sits on "Loading..." forever. Reading the provider ourselves is both reliable and
+     * cheaper to style.
+     */
     private fun setupCalendarWidget() {
         binding.calendarWidgetContainer.removeAllViews()
         calendarBinding = null
 
-        val hosted = renderHostedWidget(
-            binding.calendarWidgetContainer,
-            prefs.googleCalendarWidgetId,
-            Constants.GOOGLE_CALENDAR_PACKAGE_NAME,
-            getString(R.string.google_calendar)
-        )
-        if (hosted) return
-
-        // Fallback built-in Calendar card
-        calendarBinding = ItemWidgetCalendarBinding.inflate(layoutInflater, binding.calendarWidgetContainer, true)
-        calendarBinding?.btnConfigureCalendar?.setOnClickListener {
-            bindAppWidget(Constants.GOOGLE_CALENDAR_PACKAGE_NAME)
+        // Release any Google Calendar widget bound by an earlier version of the app.
+        if (prefs.googleCalendarWidgetId != -1) {
+            releaseWidget(Constants.GOOGLE_CALENDAR_PACKAGE_NAME, prefs.googleCalendarWidgetId)
         }
+
+        val card = ItemWidgetCalendarBinding.inflate(layoutInflater, binding.calendarWidgetContainer, true)
+        calendarBinding = card
+        card.btnConfigureCalendar.setOnClickListener { openCalendarApp() }
 
         if (hasCalendarPermission()) {
             viewModel.loadCalendarEvents(requireContext())
         } else {
-            calendarBinding?.tvCalendarStatus?.setText(R.string.calendar_permission_required)
-            calendarBinding?.llCalendarFallback?.setOnClickListener {
+            card.tvCalendarStatus.setText(R.string.calendar_permission_required)
+            card.llCalendarFallback.setOnClickListener {
                 calendarPermissionLauncher.launch(Manifest.permission.READ_CALENDAR)
             }
         }
@@ -187,12 +194,102 @@ class WidgetsFragment : BaseFragment() {
 
     private fun observeCalendarEvents() {
         viewModel.calendarEvents.observe(viewLifecycleOwner) { events ->
-            val status = calendarBinding?.tvCalendarStatus ?: return@observe
-            if (events.isNullOrEmpty()) {
-                status.setText(R.string.no_upcoming_events)
+            renderCalendarEvents(events.orEmpty())
+        }
+    }
+
+    private fun renderCalendarEvents(events: List<CalendarEventModel>) {
+        val card = calendarBinding ?: return
+        // The status line and the rows share the container; rebuild the rows from scratch.
+        card.llEventsContainer.removeAllViews()
+        card.llEventsContainer.addView(card.tvCalendarStatus)
+
+        if (events.isEmpty()) {
+            card.tvCalendarStatus.visibility = View.VISIBLE
+            card.tvCalendarStatus.setText(R.string.no_upcoming_events)
+            return
+        }
+
+        card.tvCalendarStatus.visibility = View.GONE
+        for (event in events) {
+            val row = ItemCalendarEventBinding.inflate(layoutInflater, card.llEventsContainer, true)
+            row.tvEventTitle.text = event.title.ifBlank { getString(R.string.event_untitled) }
+            row.tvEventWhen.text = getString(R.string.event_when, dayLabel(event), timeLabel(event))
+            if (event.location.isBlank()) {
+                row.tvEventLocation.visibility = View.GONE
             } else {
-                status.text = events.joinToString("\n") { "• ${it.title} (${it.timeRange})" }
+                row.tvEventLocation.visibility = View.VISIBLE
+                row.tvEventLocation.text = event.location
             }
+            row.llCalendarEvent.setOnClickListener { openEvent(event) }
+        }
+    }
+
+    /**
+     * All-day instances are stored at midnight UTC, so they have to be shifted into the local zone
+     * before being read as a day or they land on the wrong date west of Greenwich.
+     */
+    private fun displayTime(event: CalendarEventModel): Long =
+        if (event.allDay) event.begin - TimeZone.getDefault().getOffset(event.begin) else event.begin
+
+    private fun dayLabel(event: CalendarEventModel): String {
+        val millis = displayTime(event)
+        return when (daysFromToday(millis)) {
+            0L -> getString(R.string.event_today)
+            1L -> getString(R.string.event_tomorrow)
+            else -> DateUtils.formatDateTime(
+                requireContext(),
+                millis,
+                DateUtils.FORMAT_SHOW_DATE or DateUtils.FORMAT_SHOW_WEEKDAY or
+                    DateUtils.FORMAT_ABBREV_MONTH or DateUtils.FORMAT_ABBREV_WEEKDAY
+            )
+        }
+    }
+
+    private fun timeLabel(event: CalendarEventModel): String {
+        if (event.allDay) return getString(R.string.event_all_day)
+        val ctx = requireContext()
+        val start = DateUtils.formatDateTime(ctx, event.begin, DateUtils.FORMAT_SHOW_TIME)
+        val end = DateUtils.formatDateTime(ctx, event.end, DateUtils.FORMAT_SHOW_TIME)
+        return "$start - $end"
+    }
+
+    private fun daysFromToday(millis: Long): Long {
+        val midnightToday = Calendar.getInstance().atStartOfDay().timeInMillis
+        val midnightThen = Calendar.getInstance().apply { timeInMillis = millis }.atStartOfDay().timeInMillis
+        // Rounding absorbs the hour a DST change adds to or removes from the difference.
+        return ((midnightThen - midnightToday).toDouble() / DateUtils.DAY_IN_MILLIS).roundToLong()
+    }
+
+    private fun Calendar.atStartOfDay(): Calendar = apply {
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }
+
+    private fun openEvent(event: CalendarEventModel) {
+        val uri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, event.id)
+        val intent = Intent(Intent.ACTION_VIEW, uri)
+            .putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, event.begin)
+            .putExtra(CalendarContract.EXTRA_EVENT_END_TIME, event.end)
+        try {
+            startActivity(intent)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            openCalendarApp()
+        }
+    }
+
+    private fun openCalendarApp() {
+        val intent = Intent(Intent.ACTION_VIEW).setData(
+            CalendarContract.CONTENT_URI.buildUpon().appendPath("time").build()
+        )
+        try {
+            startActivity(intent)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(context, "No calendar app found", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -260,8 +357,8 @@ class WidgetsFragment : BaseFragment() {
     }
 
     /**
-     * A widget whose provider declares a configuration activity keeps showing its initialLayout -
-     * the "Loading..." placeholder - until that activity has run. Binding the id is not enough.
+     * A widget whose provider declares a configuration activity keeps showing its initialLayout
+     * until that activity has run. Binding the id is not enough.
      */
     private fun configureAppWidget(
         packageName: String,

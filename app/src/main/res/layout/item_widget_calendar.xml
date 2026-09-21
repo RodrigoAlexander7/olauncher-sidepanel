@@ -30,7 +30,7 @@
             android:layout_height="wrap_content"
             android:background="?attr/selectableItemBackground"
             android:padding="6dp"
-            android:text="@string/widget_select"
+            android:text="@string/widget_open"
             android:textColor="?attr/primaryColor" />
     </LinearLayout>
 
