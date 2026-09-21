@@ -187,6 +187,12 @@
     <string name="tap_to_choose_photo">Tap to select photo from gallery</string>
     <string name="no_upcoming_events">No upcoming events</string>
     <string name="calendar_permission_required">Tap to grant Calendar permission</string>
+    <string name="widget_open">Open</string>
+    <string name="event_today">Today</string>
+    <string name="event_tomorrow">Tomorrow</string>
+    <string name="event_all_day">All day</string>
+    <string name="event_untitled">(No title)</string>
+    <string name="event_when">%1$s · %2$s</string>
     <string name="swipe_right_action">Swipe right action</string>
     <string name="swipe_right_widgets">Widgets View</string>
     <string name="swipe_right_open_app">Open App</string>

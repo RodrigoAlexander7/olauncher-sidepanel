@@ -1,10 +1,8 @@
 package app.olauncher.ui
 
-import android.content.ContentResolver
 import android.content.ContentUris
 import android.content.Context
 import android.database.Cursor
-import android.net.Uri
 import android.provider.CalendarContract
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -12,14 +10,19 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Date
-import java.util.Locale
 
+/**
+ * One instance of a calendar event. Times are kept raw so the view layer can format them with the
+ * user's locale settings. For all-day events [begin] and [end] are midnight UTC, not local time -
+ * see CalendarContract.Instances.
+ */
 data class CalendarEventModel(
+    val id: Long,
     val title: String,
-    val timeRange: String,
+    val begin: Long,
+    val end: Long,
+    val allDay: Boolean,
     val location: String
 )
 
@@ -40,20 +43,23 @@ class WidgetsViewModel : ViewModel() {
             val eventsList = mutableListOf<CalendarEventModel>()
             try {
                 val now = System.currentTimeMillis()
-                val calendarEnd = Calendar.getInstance().apply {
-                    add(Calendar.DAY_OF_YEAR, 1)
+                val windowEnd = Calendar.getInstance().apply {
+                    add(Calendar.DAY_OF_YEAR, DAYS_AHEAD)
                     set(Calendar.HOUR_OF_DAY, 23)
                     set(Calendar.MINUTE, 59)
+                    set(Calendar.SECOND, 59)
                 }.timeInMillis
 
                 val builder = CalendarContract.Instances.CONTENT_URI.buildUpon()
                 ContentUris.appendId(builder, now)
-                ContentUris.appendId(builder, calendarEnd)
+                ContentUris.appendId(builder, windowEnd)
 
                 val projection = arrayOf(
+                    CalendarContract.Instances.EVENT_ID,
                     CalendarContract.Instances.TITLE,
                     CalendarContract.Instances.BEGIN,
                     CalendarContract.Instances.END,
+                    CalendarContract.Instances.ALL_DAY,
                     CalendarContract.Instances.EVENT_LOCATION
                 )
 
@@ -66,14 +72,17 @@ class WidgetsViewModel : ViewModel() {
                 )
 
                 cursor?.use {
-                    val timeFormat = SimpleDateFormat("h:mm a", Locale.getDefault())
-                    while (it.moveToNext() && eventsList.size < 5) {
-                        val title = it.getString(0) ?: "Event"
-                        val begin = it.getLong(1)
-                        val end = it.getLong(2)
-                        val location = it.getString(3) ?: ""
-                        val timeStr = "${timeFormat.format(Date(begin))} - ${timeFormat.format(Date(end))}"
-                        eventsList.add(CalendarEventModel(title, timeStr, location))
+                    while (it.moveToNext() && eventsList.size < MAX_EVENTS) {
+                        eventsList.add(
+                            CalendarEventModel(
+                                id = it.getLong(0),
+                                title = it.getString(1) ?: "",
+                                begin = it.getLong(2),
+                                end = it.getLong(3),
+                                allDay = it.getInt(4) != 0,
+                                location = it.getString(5) ?: ""
+                            )
+                        )
                     }
                 }
             } catch (e: Exception) {
@@ -81,5 +90,10 @@ class WidgetsViewModel : ViewModel() {
             }
             _calendarEvents.postValue(eventsList)
         }
+    }
+
+    companion object {
+        private const val DAYS_AHEAD = 7
+        private const val MAX_EVENTS = 5
     }
 }
