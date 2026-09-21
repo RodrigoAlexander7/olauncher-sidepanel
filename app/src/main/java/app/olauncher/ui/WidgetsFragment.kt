@@ -47,6 +47,8 @@ class WidgetsFragment : BaseFragment() {
     private var calendarBinding: ItemWidgetCalendarBinding? = null
     private var galleryBinding: ItemWidgetGalleryBinding? = null
 
+    private var availableCalendars: List<CalendarInfo> = emptyList()
+
     // Widget id being bound/configured right now. Kept so a cancelled flow can release it again.
     private var pendingWidgetPackageName = ""
     private var pendingWidgetId = -1
@@ -89,7 +91,8 @@ class WidgetsFragment : BaseFragment() {
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            viewModel.loadCalendarEvents(requireContext())
+            viewModel.loadCalendars(requireContext())
+            viewModel.loadCalendarEvents(requireContext(), prefs.calendarId)
         } else {
             Toast.makeText(context, "Calendar permission denied", Toast.LENGTH_SHORT).show()
         }
@@ -125,7 +128,7 @@ class WidgetsFragment : BaseFragment() {
         // Providers stop pushing RemoteViews while the host is not listening; ask them to redraw.
         hostHelper.startListening()
         hostHelper.requestUpdate(prefs.googleTasksWidgetId)
-        if (hasCalendarPermission()) viewModel.loadCalendarEvents(requireContext())
+        if (hasCalendarPermission()) viewModel.loadCalendarEvents(requireContext(), prefs.calendarId)
     }
 
     private fun setupSwipeGesture() {
@@ -182,8 +185,11 @@ class WidgetsFragment : BaseFragment() {
         calendarBinding = card
         card.btnConfigureCalendar.setOnClickListener { openCalendarApp() }
 
+        card.btnSelectCalendar.visibility = View.GONE
+
         if (hasCalendarPermission()) {
-            viewModel.loadCalendarEvents(requireContext())
+            viewModel.loadCalendars(requireContext())
+            viewModel.loadCalendarEvents(requireContext(), prefs.calendarId)
         } else {
             card.tvCalendarStatus.setText(R.string.calendar_permission_required)
             card.llCalendarFallback.setOnClickListener {
@@ -196,6 +202,43 @@ class WidgetsFragment : BaseFragment() {
         viewModel.calendarEvents.observe(viewLifecycleOwner) { events ->
             renderCalendarEvents(events.orEmpty())
         }
+        viewModel.calendars.observe(viewLifecycleOwner) { calendars ->
+            availableCalendars = calendars.orEmpty()
+            // The chosen calendar can disappear when an account is removed.
+            if (availableCalendars.none { it.id == prefs.calendarId }) {
+                if (prefs.calendarId != Constants.ALL_CALENDARS) {
+                    prefs.calendarId = Constants.ALL_CALENDARS
+                    viewModel.loadCalendarEvents(requireContext(), prefs.calendarId)
+                }
+            }
+            renderCalendarSelector()
+        }
+    }
+
+    /**
+     * Tapping cycles All -> each calendar -> All, matching how the rest of the launcher lets you
+     * pick a value without opening a dialog.
+     */
+    private fun renderCalendarSelector() {
+        val card = calendarBinding ?: return
+        val selected = availableCalendars.firstOrNull { it.id == prefs.calendarId }
+        card.btnSelectCalendar.text = when {
+            selected == null -> getString(R.string.all_calendars)
+            selected.displayName.isNotBlank() -> selected.displayName
+            else -> selected.accountName
+        }
+        card.btnSelectCalendar.visibility =
+            if (availableCalendars.size > 1) View.VISIBLE else View.GONE
+        card.btnSelectCalendar.setOnClickListener { cycleCalendar() }
+    }
+
+    private fun cycleCalendar() {
+        if (availableCalendars.isEmpty()) return
+        val ids = listOf(Constants.ALL_CALENDARS) + availableCalendars.map { it.id }
+        val next = ids[(ids.indexOf(prefs.calendarId).coerceAtLeast(0) + 1) % ids.size]
+        prefs.calendarId = next
+        renderCalendarSelector()
+        viewModel.loadCalendarEvents(requireContext(), next)
     }
 
     private fun renderCalendarEvents(events: List<CalendarEventModel>) {

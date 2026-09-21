@@ -96,6 +96,8 @@ object Constants {
     const val GOOGLE_TASKS_PACKAGE_NAME = "com.google.android.apps.tasks"
     const val GOOGLE_CALENDAR_PACKAGE_NAME = "com.google.android.calendar"
 
+    const val ALL_CALENDARS = -1L
+
     const val HINT_RATE_US = 15
 
     const val LONG_PRESS_DELAY_MS = 500L
