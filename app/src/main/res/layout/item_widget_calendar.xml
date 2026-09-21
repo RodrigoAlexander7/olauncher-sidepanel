@@ -34,6 +34,18 @@
             android:textColor="?attr/primaryColor" />
     </LinearLayout>
 
+    <TextView
+        android:id="@+id/btnSelectCalendar"
+        style="@style/TextSmall"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:alpha="0.6"
+        android:background="?attr/selectableItemBackground"
+        android:paddingVertical="4dp"
+        android:text="@string/all_calendars"
+        android:textColor="?attr/primaryColor" />
+
     <LinearLayout
         android:id="@+id/llEventsContainer"
         android:layout_width="match_parent"

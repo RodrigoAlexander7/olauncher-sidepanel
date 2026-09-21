@@ -8,6 +8,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.olauncher.data.Constants
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -26,10 +27,19 @@ data class CalendarEventModel(
     val location: String
 )
 
+data class CalendarInfo(
+    val id: Long,
+    val displayName: String,
+    val accountName: String
+)
+
 class WidgetsViewModel : ViewModel() {
 
     private val _calendarEvents = MutableLiveData<List<CalendarEventModel>>()
     val calendarEvents: LiveData<List<CalendarEventModel>> get() = _calendarEvents
+
+    private val _calendars = MutableLiveData<List<CalendarInfo>>()
+    val calendars: LiveData<List<CalendarInfo>> get() = _calendars
 
     private val _galleryImageUri = MutableLiveData<String>()
     val galleryImageUri: LiveData<String> get() = _galleryImageUri
@@ -38,7 +48,47 @@ class WidgetsViewModel : ViewModel() {
         _galleryImageUri.value = uri
     }
 
-    fun loadCalendarEvents(context: Context) {
+    fun loadCalendars(context: Context) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val list = mutableListOf<CalendarInfo>()
+            try {
+                val projection = arrayOf(
+                    CalendarContract.Calendars._ID,
+                    CalendarContract.Calendars.CALENDAR_DISPLAY_NAME,
+                    CalendarContract.Calendars.ACCOUNT_NAME
+                )
+                context.contentResolver.query(
+                    CalendarContract.Calendars.CONTENT_URI,
+                    projection,
+                    null,
+                    null,
+                    "${CalendarContract.Calendars.CALENDAR_DISPLAY_NAME} ASC"
+                )?.use {
+                    while (it.moveToNext()) {
+                        list.add(
+                            CalendarInfo(
+                                id = it.getLong(0),
+                                displayName = it.getString(1) ?: "",
+                                accountName = it.getString(2) ?: ""
+                            )
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            _calendars.postValue(list)
+        }
+    }
+
+    /**
+     * Loads upcoming events from [calendarId], or from every calendar when it is
+     * [Constants.ALL_CALENDARS]. Reading every calendar means the same event can turn up several
+     * times - holiday calendars in particular are subscribed once per Google account - so
+     * identical occurrences are collapsed. The key includes the start time on purpose: two
+     * occurrences of a recurring event share a title and must stay separate rows.
+     */
+    fun loadCalendarEvents(context: Context, calendarId: Long) {
         viewModelScope.launch(Dispatchers.IO) {
             val eventsList = mutableListOf<CalendarEventModel>()
             try {
@@ -63,23 +113,38 @@ class WidgetsViewModel : ViewModel() {
                     CalendarContract.Instances.EVENT_LOCATION
                 )
 
+                val selection: String?
+                val selectionArgs: Array<String>?
+                if (calendarId == Constants.ALL_CALENDARS) {
+                    selection = null
+                    selectionArgs = null
+                } else {
+                    selection = "${CalendarContract.Instances.CALENDAR_ID} = ?"
+                    selectionArgs = arrayOf(calendarId.toString())
+                }
+
                 val cursor: Cursor? = context.contentResolver.query(
                     builder.build(),
                     projection,
-                    null,
-                    null,
+                    selection,
+                    selectionArgs,
                     "${CalendarContract.Instances.BEGIN} ASC"
                 )
 
+                val seen = mutableSetOf<Triple<String, Long, Boolean>>()
                 cursor?.use {
                     while (it.moveToNext() && eventsList.size < MAX_EVENTS) {
+                        val title = it.getString(1) ?: ""
+                        val begin = it.getLong(2)
+                        val allDay = it.getInt(4) != 0
+                        if (!seen.add(Triple(title, begin, allDay))) continue
                         eventsList.add(
                             CalendarEventModel(
                                 id = it.getLong(0),
-                                title = it.getString(1) ?: "",
-                                begin = it.getLong(2),
+                                title = title,
+                                begin = begin,
                                 end = it.getLong(3),
-                                allDay = it.getInt(4) != 0,
+                                allDay = allDay,
                                 location = it.getString(5) ?: ""
                             )
                         )
@@ -93,7 +158,7 @@ class WidgetsViewModel : ViewModel() {
     }
 
     companion object {
-        private const val DAYS_AHEAD = 7
-        private const val MAX_EVENTS = 5
+        private const val DAYS_AHEAD = 14
+        private const val MAX_EVENTS = 7
     }
 }

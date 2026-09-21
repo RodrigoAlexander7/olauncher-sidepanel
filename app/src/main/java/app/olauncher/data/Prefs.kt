@@ -39,6 +39,7 @@ class Prefs(context: Context) {
     private val SWIPE_RIGHT_ACTION = "SWIPE_RIGHT_ACTION"
     private val GOOGLE_TASKS_WIDGET_ID = "GOOGLE_TASKS_WIDGET_ID"
     private val GOOGLE_CALENDAR_WIDGET_ID = "GOOGLE_CALENDAR_WIDGET_ID"
+    private val CALENDAR_ID = "CALENDAR_ID"
     private val GALLERY_IMAGE_URI = "GALLERY_IMAGE_URI"
     private val WIDGETS_SCREEN_ENABLED = "WIDGETS_SCREEN_ENABLED"
     private val TEXT_SIZE_SCALE = "TEXT_SIZE_SCALE"
@@ -278,6 +279,11 @@ class Prefs(context: Context) {
     var googleCalendarWidgetId: Int
         get() = prefs.getInt(GOOGLE_CALENDAR_WIDGET_ID, -1)
         set(value) = prefs.edit { putInt(GOOGLE_CALENDAR_WIDGET_ID, value).apply() }
+
+    // Calendar the widget reads from; ALL_CALENDARS means every calendar on the device.
+    var calendarId: Long
+        get() = prefs.getLong(CALENDAR_ID, Constants.ALL_CALENDARS)
+        set(value) = prefs.edit { putLong(CALENDAR_ID, value).apply() }
 
     var galleryImageUri: String
         get() = prefs.getString(GALLERY_IMAGE_URI, "").toString()
